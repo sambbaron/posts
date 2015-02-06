@@ -311,6 +311,46 @@ class TestAPI(unittest.TestCase):
 
         data = json.loads(response.data)
         self.assertEqual(data["message"], "'body' is a required property")        
+
+        
+    def testPutPost(self):
+        """ Edit an existing post """
+        
+        # Add new post
+        postNew = models.Post(title="Just a test", body="Post with bells")
+        session.add(postNew)
+        session.commit()
+        
+        data = {
+            "title": "Change the title",
+            "body": "Change the body"
+        }
+        
+        # Create PUT request using JSON from 'data' dictionary
+        response = self.client.put("/api/posts/1",
+            data=json.dumps(data),
+            content_type="application/json",
+            headers=[("Accept", "application/json")]
+        )
+
+        # Test response code, mimetype, and location path
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "application/json")
+        self.assertEqual(urlparse(response.headers.get("Location")).path,
+                         "/api/posts/1")
+        
+        # Test post content from response
+        data = json.loads(response.data)
+        self.assertEqual(data["title"], "Change the title")
+        self.assertEqual(data["body"], "Change the body")
+
+        # Query post from database
+        posts = session.query(models.Post).all()
+        self.assertEqual(len(posts), 1)
+        # Test post content from database
+        post = posts[0]
+        self.assertEqual(post.title, "Change the title")
+        self.assertEqual(post.body, "Change the body")        
         
 if __name__ == "__main__":
     unittest.main()

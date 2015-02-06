@@ -40,7 +40,7 @@ def posts_get():
     data = json.dumps([post.as_dictionary() for post in posts])
     return Response(data, 200, mimetype="application/json")
 
-@app.route("/api/posts/<int:id>", methods=["GET", "DELETE"])
+@app.route("/api/posts/<int:id>", methods=["GET", "DELETE", "PUT"])
 @decorators.accept("application/json")
 def post_get(id):
     """ Single post endpoint """
@@ -65,6 +65,21 @@ def post_get(id):
         message = "Post {} deleted".format(id)
         data = json.dumps({"message": message})
         return Response(data, 200, mimetype="application/json")
+    elif request.method == "PUT":
+        # Check that the JSON supplied is valid
+        # If not you return a 422 Unprocessable Entity
+        data = request.json
+        try:
+            validate(data, post_schema)
+        except ValidationError as error:
+            data = {"message": error.message}
+            return Response(json.dumps(data), 422, mimetype="application/json")
+        post.title = data["title"]
+        post.body = data["body"]
+        session.commit()
+        headers = {"Location": url_for("post_get", id=post.id)}
+        return Response(json.dumps(data), 200, headers=headers,
+                    mimetype="application/json")
 
 @app.route("/api/posts", methods=["POST"])
 @decorators.accept("application/json")
