@@ -226,7 +226,56 @@ class TestAPI(unittest.TestCase):
         post = posts[0]
         self.assertEqual(post["title"], "Just a test")
         self.assertEqual(post["body"], "Post with bells")
+        
+    def testPostPost(self):
+        """ Posting a new post """
+        data = {
+            "title": "Example Post",
+            "body": "Just a test"
+        }
+        
+        # Create POST request using JSON from 'data' dictionary
+        response = self.client.post("/api/posts",
+            data=json.dumps(data),
+            content_type="application/json",
+            headers=[("Accept", "application/json")]
+        )
 
+        # Test response code, mimetype, and location path
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.mimetype, "application/json")
+        self.assertEqual(urlparse(response.headers.get("Location")).path,
+                         "/api/posts/1")
+
+        # Test post content from response
+        data = json.loads(response.data)
+        self.assertEqual(data["id"], 1)
+        self.assertEqual(data["title"], "Example Post")
+        self.assertEqual(data["body"], "Just a test")
+
+        # Query post from database
+        posts = session.query(models.Post).all()
+        self.assertEqual(len(posts), 1)
+        # Test post content from database
+        post = posts[0]
+        self.assertEqual(post.title, "Example Post")
+        self.assertEqual(post.body, "Just a test")        
+
+    def testUnsupportedMimetype(self):
+        """Test unsupported mimetype with XML"""
+        data = "<xml></xml>"
+        response = self.client.post("/api/posts",
+            data=json.dumps(data),
+            content_type="application/xml",
+            headers=[("Accept", "application/json")]
+        )
+
+        self.assertEqual(response.status_code, 415)
+        self.assertEqual(response.mimetype, "application/json")
+
+        data = json.loads(response.data)
+        self.assertEqual(data["message"],
+                         "Request must contain application/json data")
         
 if __name__ == "__main__":
     unittest.main()
