@@ -17,11 +17,14 @@ def posts_get():
     
     # Get the querystring arguments
     title_like = request.args.get("title_like")
+    body_like = request.args.get("body_like")
     
     # Get and filter the posts from the database
     posts = session.query(models.Post)
     if title_like:
         posts = posts.filter(models.Post.title.contains(title_like))
+    if body_like:
+        posts = posts.filter(models.Post.body.contains(body_like))
     posts = posts.all()
 
     # Convert the posts to JSON and return a response
